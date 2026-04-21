@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, initial-scale=1.0" />
+    <title>FUZZIFICATION — Anti-Fuzzing Techniques</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./src/styles/main.css" />
+  </head>
+  <body>
+    <!-- Grain + vignette overlays live above the deck -->
+    <div class="grain" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <div class="reveal">
+      <div class="slides">
+        <!-- 1. TITLE -->
+        <section data-slide="title">
+          <div class="title-slide">
+            <div class="stamp">CLASSIFIED · FOR PRESENTATION</div>
+            <h1 class="display">
+              <span class="display-line">FUZZI</span>
+              <span class="display-line italic">fication</span>
+            </h1>
+            <p class="subtitle">Anti-Fuzzing Techniques</p>
+            <div class="meta">
+              <div><span class="label">Paper</span> Jung, Kim, Ruef, Kwon, Lee, Payer</div>
+              <div><span class="label">Venue</span> USENIX Security 2019</div>
+              <div><span class="label">Presenter</span> Your Name</div>
+            </div>
+            <div class="title-corner tl"></div>
+            <div class="title-corner tr"></div>
+            <div class="title-corner bl"></div>
+            <div class="title-corner br"></div>
+          </div>
+        </section>
+
+        <!-- 2. INTRODUCTION: THE FUZZING LOOP (animated SVG) -->
+        <section data-slide="intro-loop">
+          <h2 class="slide-title">
+            <span class="numeral">01</span> The Fuzzing Loop
+          </h2>
+          <div class="two-col">
+            <div class="col">
+              <p class="lede">
+                Modern fuzzers iterate on a tight feedback loop &mdash;
+                every stage has an assumption an attacker can break.
+              </p>
+              <ul class="fragments-list">
+                <li class="fragment">
+                  <span class="bullet-tag">SEED</span>
+                  starting inputs
+                </li>
+                <li class="fragment">
+                  <span class="bullet-tag">MUTATE</span>
+                  bit-flips, splicing, dictionaries
+                </li>
+                <li class="fragment">
+                  <span class="bullet-tag">EXECUTE</span>
+                  observe crashes &amp; hangs
+                </li>
+                <li class="fragment">
+                  <span class="bullet-tag">COVERAGE</span>
+                  new edges &rarr; keep input
+                </li>
+              </ul>
+            </div>
+            <div class="col diagram-col">
+              <svg class="fuzz-loop" viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--amber)" />
+                  </marker>
+                </defs>
+                <!-- Outer ring -->
+                <circle cx="240" cy="240" r="180" fill="none" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 4" />
+                <!-- Nodes -->
+                <g class="node n1">
+                  <circle cx="240" cy="60" r="44" />
+                  <text x="240" y="66" text-anchor="middle">SEED</text>
+                </g>
+                <g class="node n2">
+                  <circle cx="420" cy="240" r="44" />
+                  <text x="420" y="246" text-anchor="middle">MUTATE</text>
+                </g>
+                <g class="node n3">
+                  <circle cx="240" cy="420" r="44" />
+                  <text x="240" y="426" text-anchor="middle">EXECUTE</text>
+                </g>
+                <g class="node n4">
+                  <circle cx="60" cy="240" r="44" />
+                  <text x="60" y="246" text-anchor="middle">COVERAGE</text>
+                </g>
+                <!-- Arcs between nodes -->
+                <path class="arc a1" d="M 280 75 A 180 180 0 0 1 405 200" fill="none" stroke="var(--amber)" stroke-width="2" marker-end="url(#arrow)" />
+                <path class="arc a2" d="M 405 280 A 180 180 0 0 1 280 405" fill="none" stroke="var(--amber)" stroke-width="2" marker-end="url(#arrow)" />
+                <path class="arc a3" d="M 200 405 A 180 180 0 0 1 75 280" fill="none" stroke="var(--amber)" stroke-width="2" marker-end="url(#arrow)" />
+                <path class="arc a4" d="M 75 200 A 180 180 0 0 1 200 75" fill="none" stroke="var(--amber)" stroke-width="2" marker-end="url(#arrow)" />
+                <!-- Center pulse -->
+                <circle class="center-pulse" cx="240" cy="240" r="6" fill="var(--amber)" />
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. MOTIVATION -->
+        <section data-slide="motivation">
+          <h2 class="slide-title"><span class="numeral">02</span> Why Anti-Fuzzing?</h2>
+          <div class="motivation-grid">
+            <div class="card fragment">
+              <div class="card-num">1</div>
+              <h3>Fuzzing found 100s of CVEs</h3>
+              <p>AFL, libFuzzer, honggfuzz have become standard attacker tools.</p>
+            </div>
+            <div class="card fragment">
+              <div class="card-num">2</div>
+              <h3>Defenders can't always patch fast</h3>
+              <p>Legacy binaries, closed-source vendors, embedded devices.</p>
+            </div>
+            <div class="card fragment">
+              <div class="card-num">3</div>
+              <h3>What if we slowed attackers down?</h3>
+              <p>Raise fuzzing cost without changing program behavior.</p>
+            </div>
+          </div>
+          <p class="takeaway fragment">
+            <span class="arrow-right">&rarr;</span>
+            FUZZIFICATION: make binaries <em>fuzz-hostile</em>, user-friendly.
+          </p>
+        </section>
+
+        <!-- 4. THREAT MODEL -->
+        <section data-slide="threat-model">
+          <h2 class="slide-title"><span class="numeral">03</span> Threat Model</h2>
+          <div class="threat-cols">
+            <div class="threat">
+              <h3 class="threat-head good">DEFENDER</h3>
+              <ul>
+                <li>Owns source code</li>
+                <li>Compiles hardened binary</li>
+                <li>Ships to users</li>
+              </ul>
+            </div>
+            <div class="threat-divider"></div>
+            <div class="threat">
+              <h3 class="threat-head bad">ATTACKER</h3>
+              <ul>
+                <li>Has the binary</li>
+                <li>Full fuzzing toolkit</li>
+                <li>Unlimited compute</li>
+              </ul>
+            </div>
+          </div>
+          <p class="note">
+            Goal: normal users see no slowdown. Fuzzers see walls.
+          </p>
+        </section>
+
+        <!-- 5. TECHNIQUES OVERVIEW -->
+        <section data-slide="techniques-overview">
+          <h2 class="slide-title"><span class="numeral">04</span> Three Techniques</h2>
+          <div class="tech-trio">
+            <div class="tech fragment">
+              <div class="tech-label">A</div>
+              <h3>SpeedBump</h3>
+              <p class="tech-target">Attacks: throughput</p>
+              <p>Insert delays on cold paths that fuzzers hit far more often than users.</p>
+            </div>
+            <div class="tech fragment">
+              <div class="tech-label">B</div>
+              <h3>BranchTrap</h3>
+              <p class="tech-target">Attacks: coverage feedback</p>
+              <p>Explode the branch space so coverage-guided fuzzers drown in edges.</p>
+            </div>
+            <div class="tech fragment">
+              <div class="tech-label">C</div>
+              <h3>AntiHybrid</h3>
+              <p class="tech-target">Attacks: symbolic execution</p>
+              <p>Inject constraints that choke concolic/hybrid fuzzers.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. SPEEDBUMP DETAIL -->
+        <section data-slide="speedbump">
+          <h2 class="slide-title"><span class="numeral">04.A</span> SpeedBump</h2>
+          <div class="two-col">
+            <div class="col">
+              <p class="lede">Slow down rarely-executed paths.</p>
+              <ul>
+                <li>Profile with benign inputs</li>
+                <li>Mark cold blocks</li>
+                <li>Inject delay loops / junk work</li>
+              </ul>
+              <p class="note">
+                User hits these paths &lt;1% of the time.<br />
+                Fuzzer hits them constantly.
+              </p>
+            </div>
+            <div class="col">
+              <pre class="code"><code>// cold block &mdash; injected delay
+if (unlikely_branch) {
+  for (int i = 0; i &lt; N; i++) {
+    volatile uint64_t x = rand();
+    x = x * 0x9e3779b97f4a7c15ULL;
+  }
+  original_cold_code();
+}</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. BRANCHTRAP DETAIL -->
+        <section data-slide="branchtrap">
+          <h2 class="slide-title"><span class="numeral">04.B</span> BranchTrap</h2>
+          <div class="two-col">
+            <div class="col">
+              <p class="lede">Flood coverage with fake edges.</p>
+              <ul>
+                <li>Coverage-guided fuzzers reward <em>new edges</em></li>
+                <li>Insert many equivalent branches keyed on input</li>
+                <li>Fuzzer thinks it's progressing &mdash; it isn't</li>
+              </ul>
+              <p class="note">
+                Raises the coverage bitmap entropy to hide real edges.
+              </p>
+            </div>
+            <div class="col">
+              <pre class="code"><code>// fake branches explode edge count
+switch (input[i] &amp; 0xFF) {
+  case 0x00: sink ^= 0x1a; break;
+  case 0x01: sink ^= 0x2b; break;
+  // ... 254 more cases
+  case 0xFF: sink ^= 0xc3; break;
+}
+// all produce same observable behavior</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8. ANTIHYBRID DETAIL -->
+        <section data-slide="antihybrid">
+          <h2 class="slide-title"><span class="numeral">04.C</span> AntiHybrid</h2>
+          <div class="two-col">
+            <div class="col">
+              <p class="lede">Poison the symbolic executor.</p>
+              <ul>
+                <li>Hybrid fuzzers use SMT to solve hard constraints</li>
+                <li>Insert hash comparisons / crypto-like ops</li>
+                <li>Solver times out &mdash; fuzzer falls back to blind mutation</li>
+              </ul>
+            </div>
+            <div class="col">
+              <pre class="code"><code>// cheap to run, brutal to solve
+uint32_t h = input_hash;
+for (int i = 0; i &lt; 8; i++)
+  h = ((h &lt;&lt; 5) + h) ^ input[i];
+if (h == MAGIC) trigger_real_path();
+// SMT solvers cannot invert this cheaply</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- 9. EVALUATION -->
+        <section data-slide="evaluation">
+          <h2 class="slide-title"><span class="numeral">05</span> Evaluation</h2>
+          <p class="lede">Measured on AFL, libFuzzer, honggfuzz, QSYM.</p>
+          <div class="eval-grid">
+            <div class="stat fragment">
+              <div class="stat-num">&gt;99%</div>
+              <div class="stat-label">reduction in new bugs found by AFL</div>
+            </div>
+            <div class="stat fragment">
+              <div class="stat-num">&lt;7%</div>
+              <div class="stat-label">user-side overhead on real workloads</div>
+            </div>
+            <div class="stat fragment">
+              <div class="stat-num">3</div>
+              <div class="stat-label">techniques, composable</div>
+            </div>
+          </div>
+          <p class="note fragment">
+            Numbers here are placeholders &mdash; replace with exact figures from the paper.
+          </p>
+        </section>
+
+        <!-- 10. DISCUSSION / TAKE-AWAY -->
+        <section data-slide="takeaway">
+          <h2 class="slide-title"><span class="numeral">06</span> Take-Away</h2>
+          <blockquote class="pull-quote">
+            Fuzzing assumes the binary is <em>neutral ground</em>.<br />
+            FUZZIFICATION shows it doesn't have to be.
+          </blockquote>
+          <ul class="takeaway-list">
+            <li class="fragment">Anti-fuzzing is the <em>dual</em> of fuzzing: attack each stage's assumption.</li>
+            <li class="fragment">Cost-asymmetry between benign user and adversarial fuzzer is exploitable.</li>
+            <li class="fragment">Ethics: same techniques protect benign code and malware &mdash; open question.</li>
+          </ul>
+        </section>
+
+        <!-- 11. UNCLEAR CONTENT (required) -->
+        <section data-slide="unclear">
+          <h2 class="slide-title"><span class="numeral">07</span> Unclear Content</h2>
+          <ul class="unclear-list">
+            <li>
+              <strong>Profiling coverage:</strong>
+              How representative is the "benign input" profile? Could an
+              adversary craft legitimate-looking inputs that hit cold paths?
+            </li>
+            <li>
+              <strong>BranchTrap vs. modern fuzzers:</strong>
+              Do newer edge-count-normalizing fuzzers (e.g., with context-
+              sensitive coverage) defeat BranchTrap? The paper's evaluation
+              predates some of these.
+            </li>
+            <li>
+              <strong>Composition order:</strong>
+              When all three techniques compose, does the user-side overhead
+              stay sub-linear, or do delays stack multiplicatively?
+            </li>
+          </ul>
+        </section>
+
+        <!-- 12. USE OF GENAI (required) -->
+        <section data-slide="genai">
+          <h2 class="slide-title"><span class="numeral">08</span> Use of GenAI</h2>
+          <div class="genai-grid">
+            <div class="prompt-block">
+              <div class="prompt-head">PROMPT</div>
+              <p>
+                "Explain how BranchTrap defeats AFL's edge coverage when
+                inserted branches produce identical behavior."
+              </p>
+            </div>
+            <div class="prompt-block">
+              <div class="prompt-head">USED FOR</div>
+              <ul>
+                <li>Clarifying AFL's bitmap hashing (&larr; main win)</li>
+                <li>Drafting code snippets for techniques</li>
+                <li>Generating the fuzzing-loop diagram structure</li>
+              </ul>
+            </div>
+            <div class="prompt-block">
+              <div class="prompt-head">LIMITATIONS</div>
+              <ul>
+                <li>Confused FUZZIFICATION numbers with related papers &mdash;
+                  had to verify every stat against the PDF.</li>
+                <li>Over-confident on solver internals; I cross-checked with
+                  a QSYM write-up.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- 13. Q&A -->
+        <section data-slide="qa">
+          <div class="qa-slide">
+            <h1 class="display qa-display">Q<span class="amp">&amp;</span>A</h1>
+            <p class="subtitle">paper &middot; usenix.org/conference/usenixsecurity19</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

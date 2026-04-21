@@ -1,0 +1,22 @@
+{
+  "name": "fuzzification-deck",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Dynamic Reveal.js + TypeScript presentation on FUZZIFICATION: Anti-Fuzzing Techniques",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "pdf": "decktape reveal http://localhost:4173 slides.pdf --size 1920x1080"
+  },
+  "dependencies": {
+    "reveal.js": "^5.1.0",
+    "highlight.js": "^11.10.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3",
+    "vite": "^5.4.0",
+    "@types/reveal.js": "^5.0.2"
+  }
+}
