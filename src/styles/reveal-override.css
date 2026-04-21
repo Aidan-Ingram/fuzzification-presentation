@@ -1,0 +1,47 @@
+/* Reveal.js visual overrides */
+
+.reveal .controls {
+  color: var(--amber);
+}
+
+.reveal .progress {
+  color: var(--amber);
+  height: 2px;
+}
+
+.reveal .progress span {
+  background: var(--amber);
+}
+
+.reveal .slide-number {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--bone-dim);
+  background: transparent;
+  letter-spacing: 0.1em;
+}
+
+.reveal h1, .reveal h2, .reveal h3 {
+  text-transform: none;
+  text-shadow: none;
+}
+
+.reveal blockquote {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: auto;
+}
+
+/* fragment default */
+.reveal .fragment.visible {
+  opacity: 1;
+}
+
+/* overview mode polish */
+.reveal.overview .slides section {
+  border: 1px solid var(--ink-3);
+  background: var(--ink-0);
+}
